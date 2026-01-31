@@ -1,0 +1,921 @@
+openapi: 3.0.3
+info:
+  title: MiniFlow API
+  description: |
+    MiniFlow 전자결재 시스템 API
+
+    ## 인증
+    모든 API 요청은 Bearer 토큰 인증이 필요합니다.
+    `/api/v1/auth/login` 엔드포인트를 통해 토큰을 발급받을 수 있습니다.
+
+    ## Rate Limiting
+    - 일반 API: 인증 사용자 60회/분, 비인증 10회/분
+    - 인증 API: 5회/분 (브루트포스 방지)
+  version: 1.0.0
+  contact:
+    name: MiniFlow Support
+    email: support@miniflow.example.com
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: 개발 서버
+  - url: https://api.miniflow.example.com/api/v1
+    description: 운영 서버
+
+tags:
+  - name: Auth
+    description: 인증 관련 API
+  - name: Templates
+    description: 결재 양식 API
+  - name: Requests
+    description: 결재 요청서 API
+  - name: Approvals
+    description: 결재 처리 API
+  - name: Attachments
+    description: 첨부파일 API
+  - name: Admin
+    description: 관리자 API
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: 홍길동
+        email:
+          type: string
+          format: email
+          example: hong@example.com
+        role:
+          type: string
+          enum: [user, approver, admin]
+          example: user
+        position:
+          type: string
+          example: 과장
+        department:
+          $ref: '#/components/schemas/Department'
+
+    Department:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: 개발팀
+        code:
+          type: string
+          example: DEV001
+
+    Template:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: 휴가신청서
+        type:
+          type: string
+          example: leave
+        description:
+          type: string
+          example: 연차/반차/병가 등 휴가 신청
+        schema:
+          type: object
+          properties:
+            fields:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  type:
+                    type: string
+                  label:
+                    type: string
+                  required:
+                    type: boolean
+        is_active:
+          type: boolean
+          example: true
+
+    ApprovalRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: 2024년 1월 휴가 신청
+        content:
+          type: object
+          additionalProperties: true
+        status:
+          type: string
+          enum: [draft, submitted, pending, approved, rejected, canceled]
+          example: pending
+        urgency:
+          type: string
+          enum: [normal, urgent, critical]
+          example: normal
+        current_step:
+          type: integer
+          example: 1
+        total_steps:
+          type: integer
+          example: 2
+        submitted_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        requester:
+          $ref: '#/components/schemas/User'
+        template:
+          $ref: '#/components/schemas/Template'
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApprovalStep'
+
+    ApprovalStep:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        step_order:
+          type: integer
+          example: 1
+        type:
+          type: string
+          enum: [approve, review, notify]
+          example: approve
+        status:
+          type: string
+          enum: [waiting, pending, approved, rejected, skipped]
+          example: pending
+        comment:
+          type: string
+          nullable: true
+          example: 승인합니다.
+        processed_at:
+          type: string
+          format: date-time
+          nullable: true
+        approver:
+          $ref: '#/components/schemas/User'
+
+    Attachment:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        original_name:
+          type: string
+          example: document.pdf
+        mime_type:
+          type: string
+          example: application/pdf
+        size:
+          type: integer
+          example: 102400
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    PaginationMeta:
+      type: object
+      properties:
+        current_page:
+          type: integer
+        per_page:
+          type: integer
+        total:
+          type: integer
+        last_page:
+          type: integer
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: 로그인
+      description: 이메일과 비밀번호로 로그인하여 토큰을 발급받습니다.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  example: password123
+      responses:
+        '200':
+          description: 로그인 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+                      token:
+                        type: string
+                        example: 1|abc123...
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 유효성 검사 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 요청 횟수 초과
+
+  /auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: 로그아웃
+      description: 현재 토큰을 무효화합니다.
+      responses:
+        '200':
+          description: 로그아웃 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 로그아웃 되었습니다.
+        '401':
+          description: 인증 필요
+
+  /auth/me:
+    get:
+      tags:
+        - Auth
+      summary: 내 정보 조회
+      description: 현재 로그인한 사용자의 정보를 조회합니다.
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: 인증 필요
+
+  /templates:
+    get:
+      tags:
+        - Templates
+      summary: 양식 목록 조회
+      description: 활성화된 결재 양식 목록을 조회합니다.
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Template'
+        '401':
+          description: 인증 필요
+
+  /templates/{id}:
+    get:
+      tags:
+        - Templates
+      summary: 양식 상세 조회
+      description: 특정 결재 양식의 상세 정보를 조회합니다.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Template'
+        '401':
+          description: 인증 필요
+        '404':
+          description: 양식을 찾을 수 없음
+
+  /requests:
+    get:
+      tags:
+        - Requests
+      summary: 결재 요청서 목록
+      description: 내가 신청한 결재 요청서 목록을 조회합니다.
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, pending, approved, rejected, canceled]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 15
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApprovalRequest'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          description: 인증 필요
+
+    post:
+      tags:
+        - Requests
+      summary: 결재 요청서 작성
+      description: 새로운 결재 요청서를 작성합니다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - template_id
+                - title
+              properties:
+                template_id:
+                  type: integer
+                  example: 1
+                title:
+                  type: string
+                  example: 2024년 1월 휴가 신청
+                content:
+                  type: object
+                  additionalProperties: true
+                urgency:
+                  type: string
+                  enum: [normal, urgent, critical]
+                  default: normal
+                steps:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - approver_id
+                      - type
+                    properties:
+                      approver_id:
+                        type: integer
+                      type:
+                        type: string
+                        enum: [approve, review, notify]
+      responses:
+        '201':
+          description: 생성 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ApprovalRequest'
+        '401':
+          description: 인증 필요
+        '422':
+          description: 유효성 검사 실패
+
+  /requests/{id}:
+    get:
+      tags:
+        - Requests
+      summary: 결재 요청서 상세 조회
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ApprovalRequest'
+        '401':
+          description: 인증 필요
+        '403':
+          description: 권한 없음
+        '404':
+          description: 요청서를 찾을 수 없음
+
+    put:
+      tags:
+        - Requests
+      summary: 결재 요청서 수정
+      description: 임시저장 상태의 요청서만 수정 가능합니다.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                content:
+                  type: object
+                urgency:
+                  type: string
+                steps:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '200':
+          description: 수정 성공
+        '401':
+          description: 인증 필요
+        '403':
+          description: 권한 없음
+        '409':
+          description: 수정 불가 상태
+
+    delete:
+      tags:
+        - Requests
+      summary: 결재 요청서 삭제
+      description: 임시저장 상태의 요청서만 삭제 가능합니다.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 삭제 성공
+        '401':
+          description: 인증 필요
+        '403':
+          description: 권한 없음
+        '409':
+          description: 삭제 불가 상태
+
+  /requests/{id}/submit:
+    post:
+      tags:
+        - Requests
+      summary: 결재 요청서 제출
+      description: 임시저장 상태의 요청서를 제출합니다.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 제출 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ApprovalRequest'
+        '400':
+          description: 결재선 미지정
+        '401':
+          description: 인증 필요
+        '403':
+          description: 권한 없음
+        '409':
+          description: 제출 불가 상태
+
+  /requests/{id}/cancel:
+    post:
+      tags:
+        - Requests
+      summary: 결재 요청서 취소
+      description: 진행 중인 요청서를 취소합니다.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 취소 성공
+        '401':
+          description: 인증 필요
+        '403':
+          description: 권한 없음
+        '409':
+          description: 취소 불가 상태
+
+  /approvals:
+    get:
+      tags:
+        - Approvals
+      summary: 내 결재 목록
+      description: 나에게 할당된 결재 목록을 조회합니다.
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApprovalStep'
+        '401':
+          description: 인증 필요
+
+  /approvals/{id}:
+    get:
+      tags:
+        - Approvals
+      summary: 결재 단계 상세 조회
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 성공
+        '401':
+          description: 인증 필요
+        '403':
+          description: 권한 없음
+
+  /approvals/{id}/approve:
+    post:
+      tags:
+        - Approvals
+      summary: 승인
+      description: 해당 결재 단계를 승인합니다.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+                  example: 승인합니다.
+      responses:
+        '200':
+          description: 승인 성공
+        '401':
+          description: 인증 필요
+        '403':
+          description: 권한 없음
+        '409':
+          description: 승인 불가 상태
+
+  /approvals/{id}/reject:
+    post:
+      tags:
+        - Approvals
+      summary: 반려
+      description: 해당 결재 단계를 반려합니다.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - comment
+              properties:
+                comment:
+                  type: string
+                  example: 사유가 불충분합니다.
+      responses:
+        '200':
+          description: 반려 성공
+        '401':
+          description: 인증 필요
+        '403':
+          description: 권한 없음
+        '409':
+          description: 반려 불가 상태
+        '422':
+          description: 반려 사유 누락
+
+  /requests/{id}/attachments:
+    post:
+      tags:
+        - Attachments
+      summary: 첨부파일 업로드
+      description: 결재 요청서에 첨부파일을 업로드합니다.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: 업로드 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Attachment'
+        '401':
+          description: 인증 필요
+        '403':
+          description: 권한 없음
+        '409':
+          description: 업로드 불가 상태
+        '422':
+          description: 파일 유효성 검사 실패
+
+  /attachments/{id}/download:
+    get:
+      tags:
+        - Attachments
+      summary: 첨부파일 다운로드
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 파일 다운로드
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: 인증 필요
+        '404':
+          description: 파일을 찾을 수 없음
+
+  /attachments/{id}:
+    delete:
+      tags:
+        - Attachments
+      summary: 첨부파일 삭제
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 삭제 성공
+        '401':
+          description: 인증 필요
+        '403':
+          description: 권한 없음
+
+  /admin/users:
+    get:
+      tags:
+        - Admin
+      summary: 사용자 목록 (관리자)
+      description: 전체 사용자 목록을 조회합니다. 관리자 권한이 필요합니다.
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          description: 인증 필요
+        '403':
+          description: 관리자 권한 필요
+
+  /admin/users/{id}:
+    get:
+      tags:
+        - Admin
+      summary: 사용자 상세 조회 (관리자)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 성공
+        '401':
+          description: 인증 필요
+        '403':
+          description: 관리자 권한 필요
+        '404':
+          description: 사용자를 찾을 수 없음
+
+  /admin/audit-logs:
+    get:
+      tags:
+        - Admin
+      summary: 감사 로그 목록 (관리자)
+      parameters:
+        - name: event
+          in: query
+          schema:
+            type: string
+            enum: [created, updated, deleted]
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 성공
+        '401':
+          description: 인증 필요
+        '403':
+          description: 관리자 권한 필요
+
+  /admin/audit-logs/{id}:
+    get:
+      tags:
+        - Admin
+      summary: 감사 로그 상세 조회 (관리자)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 성공
+        '401':
+          description: 인증 필요
+        '403':
+          description: 관리자 권한 필요
+        '404':
+          description: 로그를 찾을 수 없음

@@ -1,0 +1,83 @@
+# MiniFlow Production Dockerfile
+FROM php:8.2-fpm-alpine
+
+# 빌드 인자
+ARG APP_ENV=production
+
+# 시스템 의존성 설치
+RUN apk add --no-cache \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
+    zip \
+    libzip-dev \
+    icu-dev \
+    oniguruma-dev \
+    linux-headers \
+    $PHPIZE_DEPS
+
+# PHP 확장 설치
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) \
+        pdo_mysql \
+        gd \
+        bcmath \
+        opcache \
+        intl \
+        zip \
+        pcntl \
+        mbstring
+
+# Redis 확장 설치
+RUN pecl install redis && docker-php-ext-enable redis
+
+# 빌드 의존성 정리
+RUN apk del $PHPIZE_DEPS linux-headers
+
+# Composer 설치
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# PHP 프로덕션 설정
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
+# OPcache 최적화 설정
+COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
+
+# 작업 디렉토리
+WORKDIR /var/www/html
+
+# 소스 코드 복사 (vendor 제외)
+COPY --chown=www-data:www-data . .
+
+# Composer 의존성 설치 (개발 의존성 제외)
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --no-progress \
+    --optimize-autoloader \
+    --prefer-dist
+
+# 불필요한 파일 제거
+RUN rm -rf \
+    .git \
+    .github \
+    tests \
+    docker \
+    *.md \
+    phpunit.xml \
+    .env.example
+
+# 스토리지 디렉토리 권한 설정
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html/storage \
+    && chmod -R 755 /var/www/html/bootstrap/cache
+
+# 포트 노출
+EXPOSE 9000
+
+# 헬스체크
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD php-fpm-healthcheck || exit 1
+
+# PHP-FPM 실행
+CMD ["php-fpm"]

@@ -1,0 +1,22 @@
+<?php
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class DepartmentResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'code' => $this->code,
+            'full_path' => $this->full_path,
+            'parent' => new DepartmentResource($this->whenLoaded('parent')),
+            'manager' => new UserResource($this->whenLoaded('manager')),
+            'children' => DepartmentResource::collection($this->whenLoaded('children')),
+        ];
+    }
+}
