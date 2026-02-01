@@ -24,7 +24,7 @@ class CreateRequestAction
                 'total_steps' => count($approvalLine),
             ]);
 
-            // 결재 단계 생성
+            // 승인 단계 생성
             foreach ($approvalLine as $index => $step) {
                 ApprovalStep::create([
                     'request_id' => $request->id,

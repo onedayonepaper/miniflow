@@ -1,8 +1,8 @@
 # MiniFlow
 
-**전자결재/요청 워크플로우 미니 SaaS**
+**간편한 신청/승인 워크플로우 플랫폼**
 
-> 휴가신청, 지출결의, 권한요청 등 사내 워크플로우를 간편하게 처리하는 경량 결재 시스템
+> 커스텀 양식 기반의 신청서 작성과 승인 처리를 위한 경량 플랫폼. 동아리, 커뮤니티, 소모임 등 다양한 그룹에서 활용할 수 있습니다.
 
 [![PHP Version](https://img.shields.io/badge/PHP-8.2+-777BB4?logo=php&logoColor=white)](https://php.net)
 [![Laravel](https://img.shields.io/badge/Laravel-12.x-FF2D20?logo=laravel&logoColor=white)](https://laravel.com)
@@ -10,16 +10,26 @@
 
 ---
 
+## 활용 예시
+
+- 동아리/모임 가입 신청
+- 이벤트/행사 참가 신청
+- 장비/공간 예약 요청
+- 문의/요청 접수
+- 승인이 필요한 모든 종류의 신청
+
+---
+
 ## 주요 기능
 
 | 기능 | 설명 |
 |------|------|
-| **요청서 생성** | 휴가신청, 지출결의 등 다양한 양식으로 요청 작성 |
-| **다단계 결재** | 1차 → 2차 → 최종 승인까지 유연한 결재선 구성 |
-| **상태 관리** | DRAFT → SUBMITTED → APPROVED/REJECTED 상태 전이 |
-| **RBAC 권한** | 사용자/결재자/관리자 역할 기반 접근 제어 |
-| **감사 로그** | 모든 결재 이력 추적 (누가, 언제, 무엇을) |
-| **첨부파일** | 증빙자료, 참고문서 첨부 지원 |
+| **양식 빌더** | 커스텀 양식을 자유롭게 정의하여 신청서 작성 |
+| **다단계 승인** | 1차 → 2차 → 최종 승인까지 유연한 승인선 구성 |
+| **상태 관리** | 임시저장 → 제출 → 승인/반려 상태 전이 |
+| **권한 관리** | 신청자/담당자/관리자 역할 기반 접근 제어 |
+| **이력 추적** | 모든 처리 이력 기록 (누가, 언제, 무엇을) |
+| **첨부파일** | 관련 자료, 증빙 문서 첨부 지원 |
 
 ---
 
@@ -46,10 +56,9 @@ open http://localhost:8080
 
 | 역할 | 이메일 | 비밀번호 |
 |------|--------|----------|
-| 관리자 | `admin@miniflow.test` | `password` |
-| 결재자 (팀장) | `manager@miniflow.test` | `password` |
-| 결재자 (부서장) | `director@miniflow.test` | `password` |
-| 일반 사용자 | `user@miniflow.test` | `password` |
+| 관리자 | `admin@example.com` | `password` |
+| 담당자 | `manager@example.com` | `password` |
+| 멤버 | `user@example.com` | `password` |
 
 ---
 
@@ -63,7 +72,7 @@ open http://localhost:8080
 ├─────────────────────────────────────────────────────────────┤
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
 │  │   Web UI    │  │  REST API   │  │   Queue Workers     │  │
-│  │  (Blade)    │  │  (JSON)     │  │  (알림/PDF생성)      │  │
+│  │  (Blade)    │  │  (JSON)     │  │  (알림 발송)         │  │
 │  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘  │
 │         │                │                     │             │
 │  ┌──────┴────────────────┴─────────────────────┴──────────┐  │
@@ -110,7 +119,7 @@ open http://localhost:8080
 ### 2. 동시성 제어 (중복 승인 방지)
 비관적 잠금(`lockForUpdate`)으로 동시 승인 방지
 
-### 3. 감사 로그 (Audit Trail)
+### 3. 이력 로그 (Audit Trail)
 모든 주요 액션 자동 기록 (spatie/laravel-activitylog)
 
 ### 4. 정책 기반 접근 제어 (Policy)
@@ -132,18 +141,11 @@ Laravel Policy로 세밀한 권한 검증
 
 ## 문서
 
-- [🚀 배포 가이드](docs/DEPLOYMENT.md) - **Docker, AWS, 일반 서버 배포 방법**
+- [🚀 배포 가이드](docs/DEPLOYMENT.md) - Docker, VPS, 서버 배포 방법
 - [📖 API 명세서](docs/API.md) - REST API 엔드포인트 명세
 - [🗄️ 데이터베이스 설계](docs/DATABASE.md) - ERD 및 테이블 설계
 - [🖥️ 화면 목록](docs/SCREENS.md) - UI 화면 구성
 - [⚙️ 구현 가이드](docs/IMPLEMENTATION.md) - 개발 가이드라인
-
-### API 문서 (Swagger UI)
-
-```bash
-# 서버 실행 후
-open http://localhost:8080/docs
-```
 
 ---
 

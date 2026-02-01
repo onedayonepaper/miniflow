@@ -17,7 +17,7 @@
 **Request:**
 ```json
 {
-  "email": "user@miniflow.test",
+  "email": "user@example.com",
   "password": "password"
 }
 ```
@@ -28,12 +28,12 @@
   "data": {
     "user": {
       "id": 1,
-      "name": "이사원",
-      "email": "user@miniflow.test",
+      "name": "이영희",
+      "email": "user@example.com",
       "role": "user",
       "department": {
         "id": 5,
-        "name": "개발1팀"
+        "name": "일반 멤버"
       }
     },
     "token": "1|abcdef123456...",
@@ -45,7 +45,7 @@
 **Response (401):**
 ```json
 {
-  "type": "https://miniflow.test/errors/unauthorized",
+  "type": "https://example.com/errors/unauthorized",
   "title": "Unauthorized",
   "status": 401,
   "detail": "이메일 또는 비밀번호가 올바르지 않습니다."
@@ -79,18 +79,18 @@ Authorization: Bearer {token}
 {
   "data": {
     "id": 1,
-    "name": "이사원",
-    "email": "user@miniflow.test",
+    "name": "이영희",
+    "email": "user@example.com",
     "role": "user",
     "department": {
       "id": 5,
-      "name": "개발1팀",
+      "name": "일반 멤버",
       "manager": {
         "id": 2,
-        "name": "김팀장"
+        "name": "김철수"
       }
     },
-    "position": "사원",
+    "position": "멤버",
     "pending_approvals_count": 0,
     "my_requests_count": 3
   }
@@ -122,10 +122,10 @@ Authorization: Bearer {token}
   "data": [
     {
       "id": 1,
-      "title": "연차 휴가 신청 (2/3~2/5)",
+      "title": "업무 협조 요청 (2/3~2/5)",
       "template": {
         "id": 1,
-        "name": "휴가신청",
+        "name": "일반 신청서",
         "type": "leave"
       },
       "status": "pending",
@@ -160,9 +160,9 @@ Authorization: Bearer {token}
 ```json
 {
   "template_id": 1,
-  "title": "연차 휴가 신청 (2/3~2/5)",
+  "title": "업무 협조 요청 (2/3~2/5)",
   "content": {
-    "leave_type": "연차",
+    "content": "프로젝트 협조 요청입니다.",
     "start_date": "2025-02-03",
     "end_date": "2025-02-05",
     "reason": "가족 여행"
@@ -180,13 +180,13 @@ Authorization: Bearer {token}
 {
   "data": {
     "id": 10,
-    "title": "연차 휴가 신청 (2/3~2/5)",
+    "title": "업무 협조 요청 (2/3~2/5)",
     "template": {
       "id": 1,
-      "name": "휴가신청"
+      "name": "일반 신청서"
     },
     "content": {
-      "leave_type": "연차",
+      "content": "프로젝트 협조 요청입니다.",
       "start_date": "2025-02-03",
       "end_date": "2025-02-05",
       "reason": "가족 여행"
@@ -196,13 +196,13 @@ Authorization: Bearer {token}
     "approval_steps": [
       {
         "step_order": 1,
-        "approver": { "id": 2, "name": "김팀장" },
+        "approver": { "id": 2, "name": "김철수" },
         "type": "approve",
         "status": "waiting"
       },
       {
         "step_order": 2,
-        "approver": { "id": 3, "name": "박부서장" },
+        "approver": { "id": 3, "name": "홍길동" },
         "type": "approve",
         "status": "waiting"
       }
@@ -215,7 +215,7 @@ Authorization: Bearer {token}
 **Validation Errors (422):**
 ```json
 {
-  "type": "https://miniflow.test/errors/validation",
+  "type": "https://example.com/errors/validation",
   "title": "Validation Error",
   "status": 422,
   "errors": {
@@ -235,20 +235,20 @@ Authorization: Bearer {token}
 {
   "data": {
     "id": 10,
-    "title": "연차 휴가 신청 (2/3~2/5)",
+    "title": "업무 협조 요청 (2/3~2/5)",
     "template": {
       "id": 1,
-      "name": "휴가신청",
+      "name": "일반 신청서",
       "type": "leave"
     },
     "requester": {
       "id": 1,
-      "name": "이사원",
-      "department": "개발1팀",
-      "position": "사원"
+      "name": "이영희",
+      "department": "일반 멤버",
+      "position": "멤버"
     },
     "content": {
-      "leave_type": "연차",
+      "content": "프로젝트 협조 요청입니다.",
       "start_date": "2025-02-03",
       "end_date": "2025-02-05",
       "reason": "가족 여행"
@@ -261,7 +261,7 @@ Authorization: Bearer {token}
       {
         "id": 1,
         "step_order": 1,
-        "approver": { "id": 2, "name": "김팀장", "position": "팀장" },
+        "approver": { "id": 2, "name": "김철수", "position": "담당자" },
         "type": "approve",
         "status": "pending",
         "comment": null,
@@ -270,7 +270,7 @@ Authorization: Bearer {token}
       {
         "id": 2,
         "step_order": 2,
-        "approver": { "id": 3, "name": "박부서장", "position": "본부장" },
+        "approver": { "id": 3, "name": "홍길동", "position": "관리자" },
         "type": "approve",
         "status": "waiting",
         "comment": null,
@@ -288,12 +288,12 @@ Authorization: Bearer {token}
     "audit_logs": [
       {
         "action": "create",
-        "user": "이사원",
+        "user": "이영희",
         "created_at": "2025-01-31T08:30:00Z"
       },
       {
         "action": "submit",
-        "user": "이사원",
+        "user": "이영희",
         "created_at": "2025-01-31T09:00:00Z"
       }
     ],
@@ -311,9 +311,9 @@ Authorization: Bearer {token}
 **Request:**
 ```json
 {
-  "title": "연차 휴가 신청 (2/3~2/4)",
+  "title": "업무 협조 요청 (2/3~2/4)",
   "content": {
-    "leave_type": "연차",
+    "content": "프로젝트 협조 요청입니다.",
     "start_date": "2025-02-03",
     "end_date": "2025-02-04",
     "reason": "가족 여행 (일정 변경)"
@@ -326,7 +326,7 @@ Authorization: Bearer {token}
 **Error (403):** 제출된 요청서는 수정 불가
 ```json
 {
-  "type": "https://miniflow.test/errors/forbidden",
+  "type": "https://example.com/errors/forbidden",
   "title": "Forbidden",
   "status": 403,
   "detail": "제출된 요청서는 수정할 수 없습니다."
@@ -353,7 +353,7 @@ Authorization: Bearer {token}
     "status": "submitted",
     "current_step": 1,
     "submitted_at": "2025-01-31T09:00:00Z",
-    "message": "결재가 요청되었습니다. 1차 결재자(김팀장)에게 알림이 전송되었습니다."
+    "message": "승인가 요청되었습니다. 1차 승인자(김철수)에게 알림이 전송되었습니다."
   }
 }
 ```
@@ -383,10 +383,10 @@ Authorization: Bearer {token}
 
 ---
 
-## 결재 (Approvals)
+## 승인 (Approvals)
 
 ### GET `/approvals`
-결재함 (나에게 온 결재 목록)
+승인함 (나에게 온 승인 목록)
 
 **Query Parameters:**
 | 파라미터 | 타입 | 설명 | 기본값 |
@@ -404,12 +404,12 @@ Authorization: Bearer {token}
       "id": 1,
       "request": {
         "id": 10,
-        "title": "연차 휴가 신청 (2/3~2/5)",
+        "title": "업무 협조 요청 (2/3~2/5)",
         "template_type": "leave",
         "requester": {
           "id": 1,
-          "name": "이사원",
-          "department": "개발1팀"
+          "name": "이영희",
+          "department": "일반 멤버"
         },
         "urgency": "normal",
         "submitted_at": "2025-01-31T09:00:00Z"
@@ -431,7 +431,7 @@ Authorization: Bearer {token}
 ---
 
 ### GET `/approvals/{id}`
-결재 상세 (= 요청서 상세 + 내 결재 권한 정보)
+승인 상세 (= 요청서 상세 + 내 승인 권한 정보)
 
 **Response (200):**
 ```json
@@ -447,17 +447,17 @@ Authorization: Bearer {token}
     },
     "request": {
       "id": 10,
-      "title": "연차 휴가 신청 (2/3~2/5)",
+      "title": "업무 협조 요청 (2/3~2/5)",
       "content": {
-        "leave_type": "연차",
+        "content": "프로젝트 협조 요청입니다.",
         "start_date": "2025-02-03",
         "end_date": "2025-02-05",
         "reason": "가족 여행"
       },
       "requester": {
         "id": 1,
-        "name": "이사원",
-        "department": "개발1팀"
+        "name": "이영희",
+        "department": "일반 멤버"
       },
       "attachments": [],
       "previous_steps": []
@@ -474,7 +474,7 @@ Authorization: Bearer {token}
 **Request:**
 ```json
 {
-  "comment": "승인합니다. 좋은 휴가 보내세요."
+  "comment": "승인합니다."
 }
 ```
 
@@ -485,14 +485,14 @@ Authorization: Bearer {token}
     "step": {
       "id": 1,
       "status": "approved",
-      "comment": "승인합니다. 좋은 휴가 보내세요.",
+      "comment": "승인합니다.",
       "processed_at": "2025-01-31T10:00:00Z"
     },
     "request": {
       "id": 10,
       "status": "pending",
       "current_step": 2,
-      "message": "1차 승인이 완료되었습니다. 2차 결재자(박부서장)에게 알림이 전송되었습니다."
+      "message": "1차 승인이 완료되었습니다. 2차 승인자(홍길동)에게 알림이 전송되었습니다."
     }
   }
 }
@@ -543,7 +543,7 @@ Authorization: Bearer {token}
       "id": 10,
       "status": "rejected",
       "completed_at": "2025-01-31T10:00:00Z",
-      "message": "반려되었습니다. 신청자(이사원)에게 알림이 전송되었습니다."
+      "message": "반려되었습니다. 신청자(이영희)에게 알림이 전송되었습니다."
     }
   }
 }
@@ -562,16 +562,16 @@ Authorization: Bearer {token}
   "data": [
     {
       "id": 1,
-      "name": "휴가신청",
+      "name": "일반 신청서",
       "type": "leave",
-      "description": "연차, 반차, 병가 등 휴가 신청",
+      "description": "범용 신청 양식",
       "schema": {
         "fields": [
           {
             "name": "leave_type",
-            "label": "휴가 종류",
+            "label": "제목",
             "type": "select",
-            "options": ["연차", "반차(오전)", "반차(오후)", "병가"],
+            "maxLength": 100,
             "required": true
           }
         ]
@@ -585,9 +585,9 @@ Authorization: Bearer {token}
     },
     {
       "id": 2,
-      "name": "지출결의",
+      "name": "간편 신청서",
       "type": "expense",
-      "description": "업무 관련 비용 지출 요청"
+      "description": "간단한 요청용 양식"
     }
   ]
 }
@@ -670,7 +670,7 @@ file: [binary]
       "id": 1,
       "user": {
         "id": 2,
-        "name": "김팀장"
+        "name": "김철수"
       },
       "action": "approve",
       "target_type": "approval_step",
@@ -731,7 +731,7 @@ file: [binary]
 
 ```json
 {
-  "type": "https://miniflow.test/errors/{error-type}",
+  "type": "https://example.com/errors/{error-type}",
   "title": "Error Title",
   "status": 400,
   "detail": "상세 에러 메시지",

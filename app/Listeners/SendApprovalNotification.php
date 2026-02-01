@@ -69,7 +69,7 @@ class SendApprovalNotification implements ShouldQueue
                 );
             }
 
-            // 2. 다음 결재자에게 결재 요청 알림
+            // 2. 다음 승인자에게 승인 요청 알림
             if ($event->nextStep) {
                 $nextApprover = $event->nextStep->approver;
                 if ($nextApprover && $nextApprover->email) {

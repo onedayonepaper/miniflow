@@ -12,7 +12,7 @@ class RejectAction
     public function execute(ApprovalStep $step, string $comment): ApprovalStep
     {
         if (!$step->canProcess()) {
-            throw ApiException::conflict('결재할 수 없는 상태입니다.');
+            throw ApiException::conflict('승인할 수 없는 상태입니다.');
         }
 
         return DB::transaction(function () use ($step, $comment) {

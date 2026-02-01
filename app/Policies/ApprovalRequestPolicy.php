@@ -40,7 +40,7 @@ class ApprovalRequestPolicy
             return true;
         }
 
-        // 결재자
+        // 승인자
         if ($request->steps()->where('approver_id', $user->id)->exists()) {
             return true;
         }

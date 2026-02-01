@@ -58,7 +58,7 @@ CREATE TABLE users (
     email           VARCHAR(255) NOT NULL UNIQUE,
     password        VARCHAR(255) NOT NULL,
     department_id   BIGINT UNSIGNED NULL,
-    position        VARCHAR(50) NULL COMMENT '직책: 사원, 대리, 과장, 팀장, 부서장',
+    position        VARCHAR(50) NULL COMMENT '직책: 멤버, 담당자, 관리자',
     role            ENUM('user', 'approver', 'admin') DEFAULT 'user',
     email_verified_at TIMESTAMP NULL,
     remember_token  VARCHAR(100) NULL,
@@ -92,7 +92,7 @@ CREATE TABLE departments (
     name            VARCHAR(100) NOT NULL,
     code            VARCHAR(20) NOT NULL UNIQUE,
     parent_id       BIGINT UNSIGNED NULL COMMENT '상위 부서',
-    manager_id      BIGINT UNSIGNED NULL COMMENT '부서장',
+    manager_id      BIGINT UNSIGNED NULL COMMENT '그룹 관리자',
     sort_order      INT DEFAULT 0,
     is_active       BOOLEAN DEFAULT TRUE,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -111,7 +111,7 @@ CREATE TABLE departments (
 | name | VARCHAR(100) | 부서명 |
 | code | VARCHAR(20) | 부서 코드 (예: DEV, HR) |
 | parent_id | BIGINT | 상위 부서 FK (계층 구조) |
-| manager_id | BIGINT | 부서장 FK |
+| manager_id | BIGINT | 그룹 관리자 FK |
 
 ---
 
@@ -121,10 +121,10 @@ CREATE TABLE departments (
 CREATE TABLE request_templates (
     id              BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     name            VARCHAR(100) NOT NULL,
-    type            VARCHAR(50) NOT NULL COMMENT 'leave, expense, account, etc.',
+    type            VARCHAR(50) NOT NULL COMMENT 'general, simple, request, etc.',
     description     TEXT NULL,
     schema          JSON NOT NULL COMMENT '폼 필드 정의',
-    default_approval_line JSON NULL COMMENT '기본 결재선 설정',
+    default_approval_line JSON NULL COMMENT '기본 승인선 설정',
     is_active       BOOLEAN DEFAULT TRUE,
     created_by      BIGINT UNSIGNED NULL,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -136,35 +136,29 @@ CREATE TABLE request_templates (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
-**schema 예시 (휴가신청):**
+**schema 예시 (일반 신청서):**
 ```json
 {
   "fields": [
     {
-      "name": "leave_type",
-      "label": "휴가 종류",
-      "type": "select",
-      "options": ["연차", "반차(오전)", "반차(오후)", "병가", "경조사"],
-      "required": true
+      "name": "title",
+      "label": "제목",
+      "type": "text",
+      "required": true,
+      "maxLength": 100
     },
     {
-      "name": "start_date",
-      "label": "시작일",
-      "type": "date",
-      "required": true
-    },
-    {
-      "name": "end_date",
-      "label": "종료일",
-      "type": "date",
-      "required": true
-    },
-    {
-      "name": "reason",
-      "label": "사유",
+      "name": "content",
+      "label": "내용",
       "type": "textarea",
       "required": true,
-      "maxLength": 500
+      "maxLength": 2000
+    },
+    {
+      "name": "attachment",
+      "label": "첨부파일",
+      "type": "file",
+      "required": false
     }
   ]
 }
@@ -176,13 +170,8 @@ CREATE TABLE request_templates (
   "steps": [
     {
       "step": 1,
-      "type": "team_leader",
-      "label": "팀장 승인"
-    },
-    {
-      "step": 2,
-      "type": "department_head",
-      "label": "부서장 승인"
+      "type": "approver",
+      "label": "담당자 승인"
     }
   ]
 }
@@ -190,7 +179,7 @@ CREATE TABLE request_templates (
 
 ---
 
-### 4. approval_requests (결재 요청)
+### 4. approval_requests (승인 요청)
 
 ```sql
 CREATE TABLE approval_requests (
@@ -201,8 +190,8 @@ CREATE TABLE approval_requests (
     content         JSON NOT NULL COMMENT '양식에 맞는 입력 데이터',
     status          ENUM('draft', 'submitted', 'pending', 'approved', 'rejected', 'canceled')
                     DEFAULT 'draft',
-    current_step    INT UNSIGNED DEFAULT 0 COMMENT '현재 결재 단계',
-    total_steps     INT UNSIGNED DEFAULT 0 COMMENT '총 결재 단계 수',
+    current_step    INT UNSIGNED DEFAULT 0 COMMENT '현재 승인 단계',
+    total_steps     INT UNSIGNED DEFAULT 0 COMMENT '총 승인 단계 수',
     urgency         ENUM('normal', 'urgent', 'critical') DEFAULT 'normal',
     submitted_at    TIMESTAMP NULL,
     completed_at    TIMESTAMP NULL,
@@ -227,37 +216,35 @@ CREATE TABLE approval_requests (
 | title | VARCHAR(255) | 요청 제목 |
 | content | JSON | 양식 데이터 |
 | status | ENUM | 상태 |
-| current_step | INT | 현재 결재 단계 |
-| total_steps | INT | 총 결재 단계 |
+| current_step | INT | 현재 승인 단계 |
+| total_steps | INT | 총 승인 단계 |
 | urgency | ENUM | 긴급도 |
 
 **content 예시:**
 ```json
 {
-  "leave_type": "연차",
-  "start_date": "2025-02-03",
-  "end_date": "2025-02-05",
-  "reason": "가족 여행"
+  "title": "업무 협조 요청",
+  "content": "프로젝트 진행을 위한 협조 요청드립니다."
 }
 ```
 
 ---
 
-### 5. approval_steps (결재 단계)
+### 5. approval_steps (승인 단계)
 
 ```sql
 CREATE TABLE approval_steps (
     id              BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     request_id      BIGINT UNSIGNED NOT NULL,
     approver_id     BIGINT UNSIGNED NOT NULL,
-    step_order      INT UNSIGNED NOT NULL COMMENT '결재 순서 (1, 2, 3...)',
+    step_order      INT UNSIGNED NOT NULL COMMENT '승인 순서 (1, 2, 3...)',
     type            ENUM('approve', 'review', 'notify') DEFAULT 'approve'
                     COMMENT 'approve:승인필요, review:검토, notify:참조',
     status          ENUM('waiting', 'pending', 'approved', 'rejected', 'skipped')
                     DEFAULT 'waiting',
-    comment         TEXT NULL COMMENT '결재 의견',
+    comment         TEXT NULL COMMENT '승인 의견',
     processed_at    TIMESTAMP NULL,
-    due_date        TIMESTAMP NULL COMMENT '결재 기한',
+    due_date        TIMESTAMP NULL COMMENT '승인 기한',
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -274,16 +261,16 @@ CREATE TABLE approval_steps (
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | id | BIGINT | PK |
-| request_id | BIGINT | 결재 요청 FK |
-| approver_id | BIGINT | 결재자 FK |
-| step_order | INT | 결재 순서 |
+| request_id | BIGINT | 승인 요청 FK |
+| approver_id | BIGINT | 승인자 FK |
+| step_order | INT | 승인 순서 |
 | type | ENUM | 타입: 승인/검토/참조 |
 | status | ENUM | 상태: waiting/pending/approved/rejected/skipped |
-| comment | TEXT | 결재 의견 |
+| comment | TEXT | 승인 의견 |
 
 **status 설명:**
 - `waiting`: 이전 단계 대기 중
-- `pending`: 현재 결재 대기 중
+- `pending`: 현재 승인 대기 중
 - `approved`: 승인됨
 - `rejected`: 반려됨
 - `skipped`: 건너뜀 (참조자)
@@ -384,7 +371,7 @@ CREATE TABLE notifications (
 ### 자주 사용되는 쿼리별 인덱스
 
 ```sql
--- 1. 내 결재 대기 목록 (결재자 기준)
+-- 1. 내 승인 대기 목록 (승인자 기준)
 -- SELECT * FROM approval_steps WHERE approver_id = ? AND status = 'pending'
 INDEX idx_approver_status (approver_id, status)
 
@@ -419,27 +406,20 @@ INDEX idx_target_created (target_type, target_id, created_at DESC)
 
 ## 시드 데이터
 
-### 부서
+### 그룹
 ```
-경영지원본부
-├── 인사팀
-├── 총무팀
-└── 재무팀
-
-개발본부
-├── 개발1팀
-├── 개발2팀
-└── QA팀
+예시 커뮤니티
+├── 운영팀
+└── 일반 멤버
 ```
 
 ### 양식 템플릿
-1. **휴가신청** - 휴가종류, 시작일, 종료일, 사유
-2. **지출결의** - 금액, 지출일, 지출항목, 증빙
+1. **신청서** - 제목, 내용, 첨부파일
+2. **간편 양식** - 요청 내용
 
 ### 사용자
-| 이메일 | 이름 | 부서 | 직책 | 역할 |
+| 이메일 | 이름 | 그룹 | 직책 | 역할 |
 |--------|------|------|------|------|
-| admin@miniflow.test | 관리자 | 경영지원본부 | 본부장 | admin |
-| manager@miniflow.test | 김팀장 | 개발1팀 | 팀장 | approver |
-| director@miniflow.test | 박부서장 | 개발본부 | 본부장 | approver |
-| user@miniflow.test | 이사원 | 개발1팀 | 사원 | user |
+| admin@example.com | 홍길동 | 예시 커뮤니티 | 관리자 | admin |
+| manager@example.com | 김철수 | 운영팀 | 담당자 | approver |
+| user@example.com | 이영희 | 일반 멤버 | 멤버 | user |

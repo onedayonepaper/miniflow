@@ -29,7 +29,7 @@ class ApprovalRequestSubmitted extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "[MiniFlow] 결재 요청: {$this->request->title}",
+            subject: "[MiniFlow] 승인 요청: {$this->request->title}",
         );
     }
 

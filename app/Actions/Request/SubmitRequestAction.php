@@ -16,11 +16,11 @@ class SubmitRequestAction
         }
 
         if ($request->steps()->count() === 0) {
-            throw ApiException::businessError('결재선이 지정되지 않았습니다.');
+            throw ApiException::businessError('승인선이 지정되지 않았습니다.');
         }
 
         return DB::transaction(function () use ($request) {
-            // 첫 번째 결재 단계 활성화
+            // 첫 번째 승인 단계 활성화
             $firstStep = $request->steps()->where('step_order', 1)->first();
             $firstStep->update(['status' => 'pending']);
 
@@ -33,7 +33,7 @@ class SubmitRequestAction
 
             $freshRequest = $request->fresh(['steps.approver', 'template', 'requester']);
 
-            // 이벤트 발행 (결재자에게 알림)
+            // 이벤트 발행 (승인자에게 알림)
             event(new ApprovalRequestSubmitted($freshRequest, $firstStep->fresh('approver')));
 
             return $freshRequest;

@@ -1,7 +1,7 @@
 <x-mail::message>
 # 최종 승인 완료
 
-귀하의 결재 요청이 **최종 승인**되었습니다.
+귀하의 승인 요청이 **최종 승인**되었습니다.
 
 ## 요청 정보
 
@@ -10,9 +10,9 @@
 | 제목 | {{ $request->title }} |
 | 완료일시 | {{ $request->completed_at?->format('Y-m-d H:i') }} |
 
-## 결재 이력
+## 승인 이력
 
-| 단계 | 결재자 | 상태 | 처리일시 |
+| 단계 | 승인자 | 상태 | 처리일시 |
 |:-----|:-------|:-----|:---------|
 @foreach($steps as $step)
 | {{ $step->step_order }} | {{ $step->approver->name }} | {{ $step->status_label }} | {{ $step->processed_at?->format('Y-m-d H:i') ?? '-' }} |

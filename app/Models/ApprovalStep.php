@@ -81,7 +81,7 @@ class ApprovalStep extends Model
     {
         return match($this->status) {
             'waiting' => '대기',
-            'pending' => '결재대기',
+            'pending' => '승인대기',
             'approved' => '승인',
             'rejected' => '반려',
             'skipped' => '건너뜀',

@@ -15,7 +15,7 @@ class CancelRequestAction
         }
 
         return DB::transaction(function () use ($request) {
-            // 모든 대기 중인 결재 단계 건너뜀 처리
+            // 모든 대기 중인 승인 단계 건너뜀 처리
             $request->steps()
                 ->whereIn('status', ['waiting', 'pending'])
                 ->update(['status' => 'skipped']);

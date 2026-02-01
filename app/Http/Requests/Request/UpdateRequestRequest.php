@@ -34,9 +34,9 @@ class UpdateRequestRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'approval_line.min' => '최소 1명의 결재자가 필요합니다.',
-            'approval_line.*.approver_id.required_with' => '결재자를 지정해주세요.',
-            'approval_line.*.approver_id.exists' => '존재하지 않는 결재자입니다.',
+            'approval_line.min' => '최소 1명의 승인자가 필요합니다.',
+            'approval_line.*.approver_id.required_with' => '승인자를 지정해주세요.',
+            'approval_line.*.approver_id.exists' => '존재하지 않는 승인자입니다.',
         ];
     }
 }

@@ -12,7 +12,7 @@ class ApproveAction
     public function execute(ApprovalStep $step, ?string $comment = null): ApprovalStep
     {
         if (!$step->canProcess()) {
-            throw ApiException::conflict('결재할 수 없는 상태입니다.');
+            throw ApiException::conflict('승인할 수 없는 상태입니다.');
         }
 
         return DB::transaction(function () use ($step, $comment) {
@@ -31,7 +31,7 @@ class ApproveAction
                 ->first();
 
             if ($nextStep) {
-                // 다음 결재자 활성화
+                // 다음 승인자 활성화
                 $nextStep->update(['status' => 'pending']);
 
                 $request->update([

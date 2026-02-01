@@ -35,7 +35,7 @@ class ApprovalStepPolicy
      */
     public function view(User $user, ApprovalStep $step): bool
     {
-        // 결재자
+        // 승인자
         if ($step->approver_id === $user->id) {
             return true;
         }
@@ -49,11 +49,11 @@ class ApprovalStepPolicy
     }
 
     /**
-     * 결재 처리 (승인/반려)
+     * 승인 처리 (승인/반려)
      */
     public function process(User $user, ApprovalStep $step): bool
     {
-        // 본인 결재 단계이고 처리 가능 상태
+        // 본인 승인 단계이고 처리 가능 상태
         return $step->approver_id === $user->id && $step->canProcess();
     }
 }

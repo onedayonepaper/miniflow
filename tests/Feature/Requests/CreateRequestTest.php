@@ -21,9 +21,9 @@ class CreateRequestTest extends TestCase
         $response = $this->withHeaders($this->authHeaders($token))
             ->postJson('/api/v1/requests', [
                 'template_id' => $template->id,
-                'title' => '휴가 신청',
+                'title' => '테스트 신청',
                 'content' => [
-                    'reason' => '개인 사유',
+                    'reason' => '테스트 내용',
                     'start_date' => '2024-01-15',
                     'end_date' => '2024-01-17',
                 ],
@@ -45,7 +45,7 @@ class CreateRequestTest extends TestCase
                 ],
             ])
             ->assertJsonPath('data.status', 'draft')
-            ->assertJsonPath('data.title', '휴가 신청');
+            ->assertJsonPath('data.title', '테스트 신청');
     }
 
     public function test_unauthenticated_user_cannot_create_request(): void
@@ -54,7 +54,7 @@ class CreateRequestTest extends TestCase
 
         $response = $this->postJson('/api/v1/requests', [
             'template_id' => $template->id,
-            'title' => '휴가 신청',
+            'title' => '테스트 신청',
         ]);
 
         $response->assertUnauthorized();
@@ -66,7 +66,7 @@ class CreateRequestTest extends TestCase
 
         $response = $this->withHeaders($this->authHeaders($token))
             ->postJson('/api/v1/requests', [
-                'title' => '휴가 신청',
+                'title' => '테스트 신청',
             ]);
 
         $response->assertUnprocessable()
@@ -94,7 +94,7 @@ class CreateRequestTest extends TestCase
         $response = $this->withHeaders($this->authHeaders($token))
             ->postJson('/api/v1/requests', [
                 'template_id' => 999,
-                'title' => '휴가 신청',
+                'title' => '테스트 신청',
             ]);
 
         $response->assertUnprocessable()
@@ -111,8 +111,8 @@ class CreateRequestTest extends TestCase
         $response = $this->withHeaders($this->authHeaders($token))
             ->postJson('/api/v1/requests', [
                 'template_id' => $template->id,
-                'title' => '휴가 신청',
-                'content' => ['reason' => '개인 사유'],
+                'title' => '테스트 신청',
+                'content' => ['reason' => '테스트 내용'],
                 'steps' => [
                     ['approver_id' => $approver1->id, 'type' => 'approve'],
                     ['approver_id' => $approver2->id, 'type' => 'approve'],
@@ -132,7 +132,7 @@ class CreateRequestTest extends TestCase
         $response = $this->withHeaders($this->authHeaders($token))
             ->postJson('/api/v1/requests', [
                 'template_id' => $template->id,
-                'title' => '휴가 신청',
+                'title' => '테스트 신청',
                 'steps' => [
                     ['approver_id' => $approver->id, 'type' => 'approve'],
                 ],
@@ -142,7 +142,7 @@ class CreateRequestTest extends TestCase
             ->assertJsonPath('data.status', 'draft');
 
         $this->assertDatabaseHas('approval_requests', [
-            'title' => '휴가 신청',
+            'title' => '테스트 신청',
             'status' => 'draft',
             'requester_id' => $user->id,
         ]);

@@ -15,9 +15,9 @@ class ApprovalStepProcessed
     /**
      * Create a new event instance.
      *
-     * @param ApprovalStep $step 처리된 결재 단계
+     * @param ApprovalStep $step 처리된 승인 단계
      * @param string $action 'approved' 또는 'rejected'
-     * @param ApprovalStep|null $nextStep 다음 결재 단계 (있는 경우)
+     * @param ApprovalStep|null $nextStep 다음 승인 단계 (있는 경우)
      */
     public function __construct(
         public ApprovalStep $step,

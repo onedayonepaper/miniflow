@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('type', 50)->comment('leave, expense, account, etc.');
             $table->text('description')->nullable();
             $table->json('schema')->comment('폼 필드 정의');
-            $table->json('default_approval_line')->nullable()->comment('기본 결재선 설정');
+            $table->json('default_approval_line')->nullable()->comment('기본 승인선 설정');
             $table->boolean('is_active')->default(true);
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();

@@ -33,10 +33,10 @@ class StoreRequestRequest extends FormRequest
             'template_id.exists' => '존재하지 않는 양식입니다.',
             'title.required' => '제목을 입력해주세요.',
             'content.required' => '내용을 입력해주세요.',
-            'approval_line.required' => '결재선을 지정해주세요.',
-            'approval_line.min' => '최소 1명의 결재자가 필요합니다.',
-            'approval_line.*.approver_id.required' => '결재자를 지정해주세요.',
-            'approval_line.*.approver_id.exists' => '존재하지 않는 결재자입니다.',
+            'approval_line.required' => '승인선을 지정해주세요.',
+            'approval_line.min' => '최소 1명의 승인자가 필요합니다.',
+            'approval_line.*.approver_id.required' => '승인자를 지정해주세요.',
+            'approval_line.*.approver_id.exists' => '존재하지 않는 승인자입니다.',
         ];
     }
 

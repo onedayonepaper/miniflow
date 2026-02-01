@@ -167,14 +167,14 @@ class ApprovalRequest extends Model
                 'submitted_at' => now(),
             ]);
 
-            // 첫 번째 결재자 활성화
+            // 첫 번째 승인자 활성화
             $this->steps()->where('step_order', 1)->update([
                 'status' => 'pending',
             ]);
 
             $this->update(['status' => 'pending', 'current_step' => 1]);
 
-            // 결재자에게 알림
+            // 승인자에게 알림
             $this->currentStep->approver->notify(
                 new ApprovalRequestedNotification($this)
             );
@@ -221,7 +221,7 @@ class PendingState extends RequestState
 
 ---
 
-### Phase 5: 결재 처리 로직 (Day 3-4)
+### Phase 5: 승인 처리 로직 (Day 3-4)
 
 **동시성 제어가 포함된 승인 처리:**
 
@@ -239,7 +239,7 @@ class ApproveStep
 
             if ($lockedStep->status !== 'pending') {
                 throw new AlreadyProcessedException(
-                    '이미 처리된 결재입니다.'
+                    '이미 처리된 승인입니다.'
                 );
             }
 
@@ -276,11 +276,11 @@ class ApproveStep
             ->first();
 
         if ($nextStep) {
-            // 다음 결재자 활성화
+            // 다음 승인자 활성화
             $nextStep->update(['status' => 'pending']);
             $request->update(['current_step' => $nextStep->step_order]);
 
-            // 다음 결재자에게 알림
+            // 다음 승인자에게 알림
             $nextStep->approver->notify(
                 new ApprovalRequestedNotification($request)
             );
@@ -340,7 +340,7 @@ class ApprovalRequestController extends Controller
         $this->submitRequest->execute($request);
 
         return response()->json([
-            'message' => '결재가 요청되었습니다.',
+            'message' => '승인가 요청되었습니다.',
             'data' => new ApprovalRequestResource($request->fresh()),
         ]);
     }
@@ -357,7 +357,7 @@ class ApprovalRequestPolicy
 {
     public function view(User $user, ApprovalRequest $request): bool
     {
-        // 본인 요청, 결재자, 관리자만 조회 가능
+        // 본인 요청, 승인자, 관리자만 조회 가능
         return $request->requester_id === $user->id
             || $request->steps()->where('approver_id', $user->id)->exists()
             || $user->hasRole('admin');
@@ -420,12 +420,10 @@ it('can create and submit a request', function () {
 
     $response = $this->postJson('/api/v1/requests', [
         'template_id' => $this->template->id,
-        'title' => '연차 휴가 신청',
+        'title' => '업무 협조 요청',
         'content' => [
-            'leave_type' => '연차',
-            'start_date' => '2025-02-03',
-            'end_date' => '2025-02-05',
-            'reason' => '가족 여행',
+            'title' => '프로젝트 협조 요청',
+            'content' => '프로젝트 진행을 위한 협조 요청드립니다.',
         ],
         'approval_line' => [
             ['approver_id' => $this->manager->id, 'type' => 'approve'],
@@ -538,7 +536,7 @@ $classes = match($status) {
 $labels = [
     'draft' => '임시저장',
     'submitted' => '제출됨',
-    'pending' => '결재중',
+    'pending' => '승인중',
     'approved' => '승인',
     'rejected' => '반려',
     'canceled' => '취소',
@@ -560,7 +558,7 @@ $labels = [
 - [ ] 로그인/로그아웃
 - [ ] 요청서 CRUD
 - [ ] 요청서 제출
-- [ ] 결재함 조회
+- [ ] 승인함 조회
 - [ ] 승인/반려 처리
 - [ ] 상태 전이 검증
 - [ ] 권한 검증
@@ -583,7 +581,7 @@ $labels = [
 | 2 | DB 마이그레이션 | Day 1-2 |
 | 3 | 모델 및 관계 | Day 2 |
 | 4 | 상태 머신 | Day 2-3 |
-| 5 | 결재 로직 | Day 3-4 |
+| 5 | 승인 로직 | Day 3-4 |
 | 6 | API 컨트롤러 | Day 4-5 |
 | 7 | 권한 정책 | Day 5 |
 | 8 | 테스트 | Day 6 |

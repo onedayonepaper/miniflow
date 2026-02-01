@@ -4,22 +4,35 @@
 
 ---
 
+## 🎯 권장 배포 방식
+
+| 방식 | 월 비용 | 난이도 | 권장 대상 |
+|------|--------|--------|----------|
+| **VPS + Docker** ⭐ | $12~15 | ⭐⭐ | 소규모~중규모 (권장) |
+| 일반 서버 | $6~12 | ⭐⭐⭐ | 직접 관리 선호 |
+| AWS | $100~200+ | ⭐⭐⭐⭐ | 대규모, 엔터프라이즈 |
+
+> **💡 권장**: VPS + Docker 방식이 가장 가성비 좋고 관리하기 쉽습니다.
+
+---
+
 ## 목차
 
 1. [사전 요구사항](#1-사전-요구사항)
 2. [로컬 개발 환경 설정](#2-로컬-개발-환경-설정)
-3. [Docker를 이용한 배포](#3-docker를-이용한-배포)
-4. [일반 서버 배포 (Ubuntu/CentOS)](#4-일반-서버-배포)
-5. [AWS 배포](#5-aws-배포)
-6. [환경 변수 설정](#6-환경-변수-설정)
-7. [데이터베이스 설정](#7-데이터베이스-설정)
-8. [큐 워커 설정](#8-큐-워커-설정)
-9. [스케줄러 설정](#9-스케줄러-설정)
-10. [Nginx 설정](#10-nginx-설정)
-11. [SSL/HTTPS 설정](#11-sslhttps-설정)
-12. [모니터링 및 로깅](#12-모니터링-및-로깅)
-13. [백업 전략](#13-백업-전략)
-14. [트러블슈팅](#14-트러블슈팅)
+3. [VPS 배포 (권장)](#3-vps-배포-권장)
+4. [Docker를 이용한 배포](#4-docker를-이용한-배포)
+5. [일반 서버 배포 (Ubuntu/CentOS)](#5-일반-서버-배포)
+6. [AWS 배포 (대규모용)](#6-aws-배포-대규모용)
+7. [환경 변수 설정](#7-환경-변수-설정)
+8. [데이터베이스 설정](#8-데이터베이스-설정)
+9. [큐 워커 설정](#9-큐-워커-설정)
+10. [스케줄러 설정](#10-스케줄러-설정)
+11. [Nginx 설정](#11-nginx-설정)
+12. [SSL/HTTPS 설정](#12-sslhttps-설정)
+13. [모니터링 및 로깅](#13-모니터링-및-로깅)
+14. [백업 전략](#14-백업-전략)
+15. [트러블슈팅](#15-트러블슈팅)
 
 ---
 
@@ -128,9 +141,178 @@ open http://localhost:8000
 
 ---
 
-## 3. Docker를 이용한 배포
+## 3. VPS 배포 (권장)
 
-### 3.1 Docker Compose (개발/테스트)
+소규모~중규모 서비스에 가장 적합한 배포 방식입니다.
+
+### 3.1 VPS 업체 선택
+
+| 업체 | 서울 리전 | 추천 플랜 | 월 비용 | 특징 |
+|------|----------|----------|--------|------|
+| **Vultr** ⭐ | ✅ 있음 | 2 vCPU, 2GB RAM | $12 | 한국 사용자 최적 |
+| Linode | ❌ (도쿄) | 2 vCPU, 2GB RAM | $12 | 안정적 |
+| DigitalOcean | ❌ (싱가포르) | 2 vCPU, 2GB RAM | $12 | 문서 풍부 |
+
+> **권장**: 한국 사용자 대상이면 **Vultr 서울 리전** 선택
+
+### 3.2 VPS 생성
+
+1. [Vultr](https://vultr.com) 또는 선호 업체 가입
+2. 서버 생성:
+   - **Location**: Seoul (또는 Tokyo)
+   - **OS**: Ubuntu 22.04 LTS
+   - **Plan**: 2 vCPU, 2GB RAM, 50GB SSD ($12/월)
+3. SSH 키 등록 (권장)
+
+### 3.3 서버 초기 설정
+
+```bash
+# SSH 접속
+ssh root@your-server-ip
+
+# 시스템 업데이트
+apt update && apt upgrade -y
+
+# 기본 패키지 설치
+apt install -y curl git ufw
+
+# Docker 설치 (공식 스크립트)
+curl -fsSL https://get.docker.com | sh
+
+# Docker Compose 플러그인 설치
+apt install -y docker-compose-plugin
+
+# Docker 서비스 시작
+systemctl enable docker
+systemctl start docker
+
+# 방화벽 설정
+ufw allow 22    # SSH
+ufw allow 80    # HTTP
+ufw allow 443   # HTTPS
+ufw --force enable
+```
+
+### 3.4 프로젝트 배포
+
+```bash
+# 배포 디렉토리 생성
+mkdir -p /var/www
+cd /var/www
+
+# 소스 클론
+git clone https://github.com/your-org/miniflow.git
+cd miniflow
+
+# 환경 변수 설정
+cp .env.production.example .env
+nano .env  # 실제 값으로 수정
+
+# 필수 수정 항목:
+# - APP_URL=https://your-domain.com
+# - DB_PASSWORD=secure_password
+# - DB_ROOT_PASSWORD=secure_root_password
+```
+
+### 3.5 Docker로 실행
+
+```bash
+# 프로덕션 빌드 및 실행
+docker compose -f docker-compose.prod.yml up -d --build
+
+# 마이그레이션 실행
+docker compose -f docker-compose.prod.yml exec app php artisan migrate --force
+
+# 초기 데이터 시드 (선택)
+docker compose -f docker-compose.prod.yml exec app php artisan db:seed --force
+
+# 상태 확인
+docker compose -f docker-compose.prod.yml ps
+
+# 로그 확인
+docker compose -f docker-compose.prod.yml logs -f
+```
+
+### 3.6 도메인 및 SSL 설정
+
+```bash
+# Certbot 설치
+apt install -y certbot
+
+# Nginx 중지 (포트 80 해제)
+docker compose -f docker-compose.prod.yml stop nginx
+
+# SSL 인증서 발급
+certbot certonly --standalone -d your-domain.com
+
+# 인증서 복사
+mkdir -p /var/www/miniflow/ssl
+cp /etc/letsencrypt/live/your-domain.com/fullchain.pem /var/www/miniflow/ssl/
+cp /etc/letsencrypt/live/your-domain.com/privkey.pem /var/www/miniflow/ssl/
+chmod 600 /var/www/miniflow/ssl/*.pem
+
+# Nginx 재시작
+docker compose -f docker-compose.prod.yml up -d nginx
+
+# 인증서 자동 갱신 설정
+echo "0 3 * * * certbot renew --pre-hook 'docker compose -f /var/www/miniflow/docker-compose.prod.yml stop nginx' --post-hook 'cp /etc/letsencrypt/live/your-domain.com/*.pem /var/www/miniflow/ssl/ && docker compose -f /var/www/miniflow/docker-compose.prod.yml up -d nginx'" | crontab -
+```
+
+### 3.7 배포 자동화 스크립트
+
+`/var/www/miniflow/deploy.sh` 파일 생성:
+
+```bash
+#!/bin/bash
+set -e
+
+cd /var/www/miniflow
+
+echo "📥 최신 코드 가져오기..."
+git pull origin main
+
+echo "🔨 Docker 이미지 빌드..."
+docker compose -f docker-compose.prod.yml build
+
+echo "🚀 서비스 재시작..."
+docker compose -f docker-compose.prod.yml up -d
+
+echo "📦 마이그레이션 실행..."
+docker compose -f docker-compose.prod.yml exec -T app php artisan migrate --force
+
+echo "🧹 캐시 갱신..."
+docker compose -f docker-compose.prod.yml exec -T app php artisan config:cache
+docker compose -f docker-compose.prod.yml exec -T app php artisan route:cache
+docker compose -f docker-compose.prod.yml exec -T app php artisan view:cache
+
+echo "✅ 배포 완료!"
+docker compose -f docker-compose.prod.yml ps
+```
+
+```bash
+# 실행 권한 부여
+chmod +x /var/www/miniflow/deploy.sh
+
+# 배포 실행
+./deploy.sh
+```
+
+### 3.8 VPS 비용 요약
+
+| 항목 | 월 비용 |
+|------|--------|
+| VPS (Vultr 2GB) | $12 |
+| 도메인 (선택) | ~$1 |
+| SSL (Let's Encrypt) | 무료 |
+| **합계** | **~$13/월** |
+
+> AWS 대비 **80-90% 비용 절감**
+
+---
+
+## 4. Docker를 이용한 배포
+
+### 4.1 Docker Compose (개발/테스트)
 
 ```bash
 # 컨테이너 빌드 및 실행
@@ -146,7 +328,7 @@ docker compose exec app php artisan migrate --seed
 open http://localhost:8080
 ```
 
-### 3.2 프로덕션용 Docker Compose
+### 4.2 프로덕션용 Docker Compose
 
 `docker-compose.prod.yml` 파일 생성:
 
@@ -251,7 +433,7 @@ networks:
     driver: bridge
 ```
 
-### 3.3 프로덕션 Dockerfile
+### 4.3 프로덕션 Dockerfile
 
 `Dockerfile.prod` 파일 생성:
 
@@ -309,7 +491,7 @@ EXPOSE 9000
 CMD ["php-fpm"]
 ```
 
-### 3.4 Docker 프로덕션 배포 명령
+### 4.4 Docker 프로덕션 배포 명령
 
 ```bash
 # 프로덕션 환경 설정
@@ -328,9 +510,9 @@ docker compose -f docker-compose.prod.yml ps
 
 ---
 
-## 4. 일반 서버 배포
+## 5. 일반 서버 배포
 
-### 4.1 Ubuntu 22.04 서버 준비
+### 5.1 Ubuntu 22.04 서버 준비
 
 ```bash
 # 시스템 업데이트
@@ -346,7 +528,7 @@ sudo apt install -y \
     cron
 ```
 
-### 4.2 PHP 8.2 설치
+### 5.2 PHP 8.2 설치
 
 ```bash
 # PHP 저장소 추가
@@ -374,7 +556,7 @@ sudo systemctl enable php8.2-fpm
 sudo systemctl start php8.2-fpm
 ```
 
-### 4.3 MySQL 8.0 설치
+### 5.3 MySQL 8.0 설치
 
 ```bash
 # MySQL 설치
@@ -390,7 +572,7 @@ sudo mysql -e "GRANT ALL PRIVILEGES ON miniflow.* TO 'miniflow'@'localhost';"
 sudo mysql -e "FLUSH PRIVILEGES;"
 ```
 
-### 4.4 Redis 설치
+### 5.4 Redis 설치
 
 ```bash
 sudo apt install -y redis-server
@@ -403,21 +585,21 @@ sudo systemctl enable redis-server
 sudo systemctl restart redis-server
 ```
 
-### 4.5 Nginx 설치
+### 5.5 Nginx 설치
 
 ```bash
 sudo apt install -y nginx
 sudo systemctl enable nginx
 ```
 
-### 4.6 Composer 설치
+### 5.6 Composer 설치
 
 ```bash
 curl -sS https://getcomposer.org/installer | php
 sudo mv composer.phar /usr/local/bin/composer
 ```
 
-### 4.7 애플리케이션 배포
+### 5.7 애플리케이션 배포
 
 ```bash
 # 배포 디렉토리 생성
@@ -456,9 +638,13 @@ php artisan view:cache
 
 ---
 
-## 5. AWS 배포
+## 6. AWS 배포 (대규모용)
 
-### 5.1 EC2 인스턴스 설정
+> ⚠️ **참고**: AWS는 대규모 엔터프라이즈 환경에 적합합니다.
+> 소규모~중규모 서비스는 [3. VPS 배포](#3-vps-배포-권장)를 권장합니다.
+> **예상 비용**: $100~200+/월 (EC2 + RDS + ElastiCache + S3 + ALB)
+
+### 6.1 EC2 인스턴스 설정
 
 ```bash
 # 인스턴스 타입: t3.small 이상 권장
@@ -469,7 +655,7 @@ php artisan view:cache
 #   - HTTPS (443): 0.0.0.0/0
 ```
 
-### 5.2 RDS (MySQL) 설정
+### 6.2 RDS (MySQL) 설정
 
 ```bash
 # RDS 인스턴스 생성
@@ -485,7 +671,7 @@ DB_USERNAME=admin
 DB_PASSWORD=your_rds_password
 ```
 
-### 5.3 ElastiCache (Redis) 설정
+### 6.3 ElastiCache (Redis) 설정
 
 ```bash
 # ElastiCache 클러스터 생성
@@ -497,7 +683,7 @@ REDIS_HOST=your-elasticache-endpoint.region.cache.amazonaws.com
 REDIS_PORT=6379
 ```
 
-### 5.4 S3 (파일 스토리지) 설정
+### 6.4 S3 (파일 스토리지) 설정
 
 ```bash
 # S3 버킷 생성 (예: miniflow-attachments)
@@ -511,7 +697,7 @@ AWS_BUCKET=miniflow-attachments
 FILESYSTEM_DISK=s3
 ```
 
-### 5.5 ALB (로드 밸런서) 설정 (선택)
+### 6.5 ALB (로드 밸런서) 설정 (선택)
 
 ```bash
 # Application Load Balancer 생성
@@ -522,9 +708,9 @@ FILESYSTEM_DISK=s3
 
 ---
 
-## 6. 환경 변수 설정
+## 7. 환경 변수 설정
 
-### 6.1 필수 환경 변수
+### 7.1 필수 환경 변수
 
 ```bash
 # 애플리케이션 기본 설정
@@ -564,7 +750,7 @@ MAIL_FROM_ADDRESS=noreply@your-domain.com
 MAIL_FROM_NAME="${APP_NAME}"
 ```
 
-### 6.2 환경 변수 보안
+### 7.2 환경 변수 보안
 
 ```bash
 # .env 파일 권한 설정
@@ -580,9 +766,9 @@ cat .gitignore | grep .env
 
 ---
 
-## 7. 데이터베이스 설정
+## 8. 데이터베이스 설정
 
-### 7.1 마이그레이션 실행
+### 8.1 마이그레이션 실행
 
 ```bash
 # 프로덕션 마이그레이션 (확인 프롬프트 건너뛰기)
@@ -592,7 +778,7 @@ php artisan migrate --force
 php artisan migrate:rollback --step=1 --force
 ```
 
-### 7.2 시드 데이터 (선택)
+### 8.2 시드 데이터 (선택)
 
 ```bash
 # 기본 역할 및 권한만 시드 (프로덕션용)
@@ -602,7 +788,7 @@ php artisan db:seed --class=RoleAndPermissionSeeder --force
 # php artisan db:seed --force
 ```
 
-### 7.3 데이터베이스 최적화
+### 8.3 데이터베이스 최적화
 
 ```sql
 -- MySQL 설정 최적화 (/etc/mysql/mysql.conf.d/mysqld.cnf)
@@ -616,9 +802,9 @@ max_connections = 200
 
 ---
 
-## 8. 큐 워커 설정
+## 9. 큐 워커 설정
 
-### 8.1 Supervisor 설정
+### 9.1 Supervisor 설정
 
 ```bash
 # Supervisor 설정 파일 생성
@@ -640,7 +826,7 @@ stdout_logfile=/var/www/miniflow/storage/logs/worker.log
 stopwaitsecs=3600
 ```
 
-### 8.2 Supervisor 명령
+### 9.2 Supervisor 명령
 
 ```bash
 # 설정 리로드
@@ -657,7 +843,7 @@ sudo supervisorctl restart miniflow-worker:*
 sudo supervisorctl restart all
 ```
 
-### 8.3 큐 모니터링
+### 9.3 큐 모니터링
 
 ```bash
 # 큐 상태 확인
@@ -675,9 +861,9 @@ php artisan queue:flush
 
 ---
 
-## 9. 스케줄러 설정
+## 10. 스케줄러 설정
 
-### 9.1 Cron 설정
+### 10.1 Cron 설정
 
 ```bash
 # crontab 편집
@@ -687,7 +873,7 @@ sudo crontab -e -u www-data
 * * * * * cd /var/www/miniflow && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-### 9.2 스케줄 작업 확인
+### 10.2 스케줄 작업 확인
 
 ```bash
 # 등록된 스케줄 작업 목록
@@ -699,9 +885,9 @@ php artisan schedule:test
 
 ---
 
-## 10. Nginx 설정
+## 11. Nginx 설정
 
-### 10.1 사이트 설정 파일
+### 11.1 사이트 설정 파일
 
 ```bash
 sudo nano /etc/nginx/sites-available/miniflow
@@ -778,7 +964,7 @@ server {
 }
 ```
 
-### 10.2 사이트 활성화
+### 11.2 사이트 활성화
 
 ```bash
 # 심볼릭 링크 생성
@@ -796,9 +982,9 @@ sudo systemctl restart nginx
 
 ---
 
-## 11. SSL/HTTPS 설정
+## 12. SSL/HTTPS 설정
 
-### 11.1 Let's Encrypt 인증서 발급
+### 12.1 Let's Encrypt 인증서 발급
 
 ```bash
 # Certbot 설치
@@ -811,7 +997,7 @@ sudo certbot --nginx -d your-domain.com -d www.your-domain.com
 sudo certbot renew --dry-run
 ```
 
-### 11.2 인증서 자동 갱신 확인
+### 12.2 인증서 자동 갱신 확인
 
 ```bash
 # Certbot 타이머 확인
@@ -823,9 +1009,9 @@ sudo certbot renew
 
 ---
 
-## 12. 모니터링 및 로깅
+## 13. 모니터링 및 로깅
 
-### 12.1 애플리케이션 로그
+### 13.1 애플리케이션 로그
 
 ```bash
 # 실시간 로그 확인
@@ -854,7 +1040,7 @@ sudo nano /etc/logrotate.d/miniflow
 }
 ```
 
-### 12.2 Health Check 모니터링
+### 13.2 Health Check 모니터링
 
 ```bash
 # Health Check 엔드포인트 테스트
@@ -873,7 +1059,7 @@ curl -s https://your-domain.com/api/health | jq
 # }
 ```
 
-### 12.3 외부 모니터링 서비스 연동 (선택)
+### 13.3 외부 모니터링 서비스 연동 (선택)
 
 ```bash
 # Sentry (에러 추적)
@@ -885,7 +1071,7 @@ SENTRY_LARAVEL_DSN=https://xxxxx@sentry.io/xxxxx
 SENTRY_TRACES_SAMPLE_RATE=0.1
 ```
 
-### 12.4 서버 모니터링
+### 13.4 서버 모니터링
 
 ```bash
 # 디스크 사용량 확인
@@ -905,9 +1091,9 @@ ps aux | grep mysql
 
 ---
 
-## 13. 백업 전략
+## 14. 백업 전략
 
-### 13.1 데이터베이스 백업 스크립트
+### 14.1 데이터베이스 백업 스크립트
 
 ```bash
 # 백업 스크립트 생성
@@ -949,7 +1135,7 @@ sudo chmod +x /usr/local/bin/backup-miniflow.sh
 echo "0 3 * * * root /usr/local/bin/backup-miniflow.sh" | sudo tee /etc/cron.d/miniflow-backup
 ```
 
-### 13.2 S3 백업 (AWS 사용시)
+### 14.2 S3 백업 (AWS 사용시)
 
 ```bash
 # AWS CLI 설치
@@ -962,9 +1148,9 @@ aws s3 cp $BACKUP_DIR/storage_$DATE.tar.gz s3://your-backup-bucket/miniflow/stor
 
 ---
 
-## 14. 트러블슈팅
+## 15. 트러블슈팅
 
-### 14.1 일반적인 문제
+### 15.1 일반적인 문제
 
 #### 500 Internal Server Error
 
@@ -1038,7 +1224,7 @@ php artisan tinker
 php artisan queue:work --once
 ```
 
-### 14.2 성능 최적화
+### 15.2 성능 최적화
 
 ```bash
 # PHP OPcache 활성화 확인
@@ -1051,7 +1237,7 @@ redis-cli ping
 sudo tail -f /var/log/mysql/mysql-slow.log
 ```
 
-### 14.3 보안 점검
+### 15.3 보안 점검
 
 ```bash
 # .env 파일 노출 확인

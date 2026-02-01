@@ -1,15 +1,15 @@
 <x-mail::message>
-# 결재 반려 알림
+# 승인 반려 알림
 
-귀하의 결재 요청이 **반려**되었습니다.
+귀하의 승인 요청이 **반려**되었습니다.
 
 ## 요청 정보
 
 | 항목 | 내용 |
 |:-----|:-----|
 | 제목 | {{ $request->title }} |
-| 결재자 | {{ $approver->name }} |
-| 결재단계 | {{ $step->step_order }}단계 |
+| 승인자 | {{ $approver->name }} |
+| 승인단계 | {{ $step->step_order }}단계 |
 | 반려일시 | {{ $step->processed_at?->format('Y-m-d H:i') }} |
 
 ### 반려 사유

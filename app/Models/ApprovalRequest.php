@@ -117,7 +117,7 @@ class ApprovalRequest extends Model
         return match($this->status) {
             'draft' => '임시저장',
             'submitted' => '제출됨',
-            'pending' => '결재중',
+            'pending' => '승인중',
             'approved' => '승인',
             'rejected' => '반려',
             'canceled' => '취소',

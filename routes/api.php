@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 | API Routes
 |--------------------------------------------------------------------------
 |
-| MiniFlow 전자결재 시스템 API v1
+| MiniFlow 신청/승인 시스템 API v1
 |
 */
 
@@ -88,7 +88,7 @@ Route::prefix('v1')->group(function () {
             ->name('api.v1.attachments.download');
         Route::delete('attachments/{attachment}', [AttachmentController::class, 'destroy']);
 
-        // Approvals (결재)
+        // Approvals (승인)
         Route::get('approvals', [ApprovalController::class, 'index']);
         Route::get('approvals/{step}', [ApprovalController::class, 'show']);
         Route::post('approvals/{step}/approve', [ApprovalController::class, 'approve']);

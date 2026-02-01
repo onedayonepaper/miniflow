@@ -16,8 +16,8 @@ return new class extends Migration
             $table->json('content')->comment('양식에 맞는 입력 데이터');
             $table->enum('status', ['draft', 'submitted', 'pending', 'approved', 'rejected', 'canceled'])
                   ->default('draft');
-            $table->unsignedInteger('current_step')->default(0)->comment('현재 결재 단계');
-            $table->unsignedInteger('total_steps')->default(0)->comment('총 결재 단계 수');
+            $table->unsignedInteger('current_step')->default(0)->comment('현재 승인 단계');
+            $table->unsignedInteger('total_steps')->default(0)->comment('총 승인 단계 수');
             $table->enum('urgency', ['normal', 'urgent', 'critical'])->default('normal');
             $table->timestamp('submitted_at')->nullable();
             $table->timestamp('completed_at')->nullable();

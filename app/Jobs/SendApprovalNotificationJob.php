@@ -33,8 +33,8 @@ class SendApprovalNotificationJob implements ShouldQueue
      * Create a new job instance.
      *
      * @param string $type 알림 유형: 'submitted', 'approved', 'rejected', 'completed'
-     * @param ApprovalRequest $request 결재 요청서
-     * @param ApprovalStep|null $step 결재 단계 (submitted, approved, rejected일 때 필요)
+     * @param ApprovalRequest $request 승인 요청서
+     * @param ApprovalStep|null $step 승인 단계 (submitted, approved, rejected일 때 필요)
      * @param string|null $recipientEmail 수신자 이메일
      */
     public function __construct(

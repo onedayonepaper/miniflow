@@ -18,35 +18,29 @@ class RequestTemplateFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->randomElement(['휴가신청서', '출장신청서', '구매요청서', '지출결의서']),
-            'type' => fake()->randomElement(['leave', 'business_trip', 'purchase', 'expense']),
+            'name' => fake()->randomElement(['일반 신청서', '간편 신청서', '업무 요청서', '승인 요청서']),
+            'type' => fake()->randomElement(['general', 'simple', 'request', 'approval']),
             'description' => fake()->sentence(),
             'schema' => [
                 'fields' => [
                     [
-                        'name' => 'reason',
+                        'name' => 'title',
                         'type' => 'text',
-                        'label' => '사유',
+                        'label' => '제목',
                         'required' => true,
                     ],
                     [
-                        'name' => 'start_date',
-                        'type' => 'date',
-                        'label' => '시작일',
-                        'required' => true,
-                    ],
-                    [
-                        'name' => 'end_date',
-                        'type' => 'date',
-                        'label' => '종료일',
+                        'name' => 'content',
+                        'type' => 'textarea',
+                        'label' => '내용',
                         'required' => true,
                     ],
                 ],
             ],
             'default_approval_line' => [
                 'steps' => [
-                    ['type' => 'approve', 'role' => 'team_leader'],
-                    ['type' => 'approve', 'role' => 'department_head'],
+                    ['type' => 'approver', 'label' => '1차 승인'],
+                    ['type' => 'approver', 'label' => '최종 승인'],
                 ],
             ],
             'is_active' => true,
@@ -54,24 +48,41 @@ class RequestTemplateFactory extends Factory
     }
 
     /**
-     * Create a leave request template.
+     * Create a general request template.
      */
-    public function leave(): static
+    public function general(): static
     {
         return $this->state(fn (array $attributes) => [
-            'name' => '휴가신청서',
-            'type' => 'leave',
+            'name' => '일반 신청서',
+            'type' => 'general',
+            'description' => '범용 신청 양식',
         ]);
     }
 
     /**
-     * Create a purchase request template.
+     * Create a simple request template.
      */
-    public function purchase(): static
+    public function simple(): static
     {
         return $this->state(fn (array $attributes) => [
-            'name' => '구매요청서',
-            'type' => 'purchase',
+            'name' => '간편 신청서',
+            'type' => 'simple',
+            'description' => '간단한 요청용 양식',
+            'schema' => [
+                'fields' => [
+                    [
+                        'name' => 'content',
+                        'type' => 'textarea',
+                        'label' => '요청 내용',
+                        'required' => true,
+                    ],
+                ],
+            ],
+            'default_approval_line' => [
+                'steps' => [
+                    ['type' => 'approver', 'label' => '승인'],
+                ],
+            ],
         ]);
     }
 

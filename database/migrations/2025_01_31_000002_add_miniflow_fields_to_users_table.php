@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->foreignId('department_id')->nullable()->after('password')->constrained()->nullOnDelete();
-            $table->string('position', 50)->nullable()->after('department_id')->comment('직책: 사원, 대리, 과장, 팀장, 부서장');
+            $table->string('position', 50)->nullable()->after('department_id')->comment('직책: 멤버, 담당자, 관리자');
             $table->enum('role', ['user', 'approver', 'admin'])->default('user')->after('position');
             $table->softDeletes();
 
